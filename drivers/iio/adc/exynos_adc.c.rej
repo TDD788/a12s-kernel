@@ -1,0 +1,19 @@
+--- drivers/iio/adc/exynos_adc.c
++++ drivers/iio/adc/exynos_adc.c
+@@ -299,6 +314,16 @@ static const struct exynos_adc_data exynos_adc_v1_data = {
+ 	.start_conv	= exynos_adc_v1_start_conv,
+ };
+ 
++static const struct exynos_adc_data exynos_adc_s5pv210_data = {
++	.num_channels	= MAX_S5PV210_ADC_CHANNELS,
++	.mask		= ADC_DATX_MASK,	/* 12 bit ADC resolution */
++
++	.init_hw	= exynos_adc_v1_init_hw,
++	.exit_hw	= exynos_adc_v1_exit_hw,
++	.clear_irq	= exynos_adc_v1_clear_irq,
++	.start_conv	= exynos_adc_v1_start_conv,
++};
++
+ static void exynos_adc_s3c2416_start_conv(struct exynos_adc *info,
+ 					  unsigned long addr)
+ {

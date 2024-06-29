@@ -1,0 +1,27 @@
+--- mm/hugetlb.c
++++ mm/hugetlb.c
+@@ -1350,6 +1385,7 @@ static void prep_new_huge_page(struct hstate *h, struct page *page, int nid)
+ 	set_hugetlb_cgroup(page, NULL);
+ 	h->nr_huge_pages++;
+ 	h->nr_huge_pages_node[nid]++;
++	ClearPageHugeFreed(page);
+ 	spin_unlock(&hugetlb_lock);
+ }
+ 
+@@ -1410,15 +1446,12 @@ int PageHeadHuge(struct page *page_head)
+ 	return get_compound_page_dtor(page_head) == free_huge_page;
+ }
+ 
+-pgoff_t __basepage_index(struct page *page)
++pgoff_t hugetlb_basepage_index(struct page *page)
+ {
+ 	struct page *page_head = compound_head(page);
+ 	pgoff_t index = page_index(page_head);
+ 	unsigned long compound_idx;
+ 
+-	if (!PageHuge(page_head))
+-		return page_index(page);
+-
+ 	if (compound_order(page_head) >= MAX_ORDER)
+ 		compound_idx = page_to_pfn(page) - page_to_pfn(page_head);
+ 	else

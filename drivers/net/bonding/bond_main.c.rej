@@ -1,0 +1,11 @@
+--- drivers/net/bonding/bond_main.c
++++ drivers/net/bonding/bond_main.c
+@@ -3128,8 +3182,6 @@ static bool bond_ab_arp_probe(struct bonding *bond)
+ 			return should_notify_rtnl;
+ 	}
+ 
+-	bond_set_slave_inactive_flags(curr_arp_slave, BOND_SLAVE_NOTIFY_LATER);
+-
+ 	bond_for_each_slave_rcu(bond, slave, iter) {
+ 		if (!found && !before && bond_slave_is_up(slave))
+ 			before = slave;

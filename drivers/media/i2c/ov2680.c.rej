@@ -1,0 +1,121 @@
+--- drivers/media/i2c/ov2680.c
++++ drivers/media/i2c/ov2680.c
+@@ -857,66 +751,23 @@ static int ov2680_enum_frame_interval(struct v4l2_subdev *sd,
+ 	return 0;
+ }
+ 
+-static int ov2680_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
+-{
+-	struct v4l2_subdev *sd = ctrl_to_sd(ctrl);
+-	struct ov2680_dev *sensor = to_ov2680_dev(sd);
+-	struct ov2680_ctrls *ctrls = &sensor->ctrls;
+-	int val;
+-
+-	if (!sensor->is_enabled)
+-		return 0;
+-
+-	switch (ctrl->id) {
+-	case V4L2_CID_GAIN:
+-		val = ov2680_gain_get(sensor);
+-		if (val < 0)
+-			return val;
+-		ctrls->gain->val = val;
+-		break;
+-	case V4L2_CID_EXPOSURE:
+-		val = ov2680_exposure_get(sensor);
+-		if (val < 0)
+-			return val;
+-		ctrls->exposure->val = val;
+-		break;
+-	}
+-
+-	return 0;
+-}
+-
+ static int ov2680_s_ctrl(struct v4l2_ctrl *ctrl)
+ {
+ 	struct v4l2_subdev *sd = ctrl_to_sd(ctrl);
+ 	struct ov2680_dev *sensor = to_ov2680_dev(sd);
+-	struct ov2680_ctrls *ctrls = &sensor->ctrls;
+ 
+ 	if (!sensor->is_enabled)
+ 		return 0;
+ 
+ 	switch (ctrl->id) {
+-	case V4L2_CID_AUTOGAIN:
+-		return ov2680_gain_set(sensor, !!ctrl->val);
+ 	case V4L2_CID_GAIN:
+-		return ov2680_gain_set(sensor, !!ctrls->auto_gain->val);
+-	case V4L2_CID_EXPOSURE_AUTO:
+-		return ov2680_exposure_set(sensor, !!ctrl->val);
++		return ov2680_gain_set(sensor, ctrl->val);
+ 	case V4L2_CID_EXPOSURE:
+-		return ov2680_exposure_set(sensor, !!ctrls->auto_exp->val);
++		return ov2680_exposure_set(sensor, ctrl->val);
+ 	case V4L2_CID_VFLIP:
+-		if (sensor->is_streaming)
+-			return -EBUSY;
+-		if (ctrl->val)
+-			return ov2680_vflip_enable(sensor);
+-		else
+-			return ov2680_vflip_disable(sensor);
++		return ov2680_set_vflip(sensor, ctrl->val);
+ 	case V4L2_CID_HFLIP:
+-		if (sensor->is_streaming)
+-			return -EBUSY;
+-		if (ctrl->val)
+-			return ov2680_hflip_enable(sensor);
+-		else
+-			return ov2680_hflip_disable(sensor);
++		return ov2680_set_hflip(sensor, ctrl->val);
+ 	case V4L2_CID_TEST_PATTERN:
+ 		return ov2680_test_pattern_set(sensor, ctrl->val);
+ 	default:
+@@ -927,7 +778,6 @@ static int ov2680_s_ctrl(struct v4l2_ctrl *ctrl)
+ }
+ 
+ static const struct v4l2_ctrl_ops ov2680_ctrl_ops = {
+-	.g_volatile_ctrl = ov2680_g_volatile_ctrl,
+ 	.s_ctrl = ov2680_s_ctrl,
+ };
+ 
+@@ -999,7 +849,7 @@ static int ov2680_v4l2_init(struct ov2680_dev *sensor)
+ 	if (ret < 0)
+ 		return ret;
+ 
+-	v4l2_ctrl_handler_init(hdl, 7);
++	v4l2_ctrl_handler_init(hdl, 5);
+ 
+ 	hdl->lock = &sensor->lock;
+ 
+@@ -1011,16 +861,9 @@ static int ov2680_v4l2_init(struct ov2680_dev *sensor)
+ 					ARRAY_SIZE(test_pattern_menu) - 1,
+ 					0, 0, test_pattern_menu);
+ 
+-	ctrls->auto_exp = v4l2_ctrl_new_std_menu(hdl, ops,
+-						 V4L2_CID_EXPOSURE_AUTO,
+-						 V4L2_EXPOSURE_MANUAL, 0,
+-						 V4L2_EXPOSURE_AUTO);
+-
+ 	ctrls->exposure = v4l2_ctrl_new_std(hdl, ops, V4L2_CID_EXPOSURE,
+ 					    0, 32767, 1, 0);
+ 
+-	ctrls->auto_gain = v4l2_ctrl_new_std(hdl, ops, V4L2_CID_AUTOGAIN,
+-					     0, 1, 1, 1);
+ 	ctrls->gain = v4l2_ctrl_new_std(hdl, ops, V4L2_CID_GAIN, 0, 2047, 1, 0);
+ 
+ 	if (hdl->error) {
+@@ -1028,11 +871,8 @@ static int ov2680_v4l2_init(struct ov2680_dev *sensor)
+ 		goto cleanup_entity;
+ 	}
+ 
+-	ctrls->gain->flags |= V4L2_CTRL_FLAG_VOLATILE;
+-	ctrls->exposure->flags |= V4L2_CTRL_FLAG_VOLATILE;
+-
+-	v4l2_ctrl_auto_cluster(2, &ctrls->auto_gain, 0, true);
+-	v4l2_ctrl_auto_cluster(2, &ctrls->auto_exp, 1, true);
++	ctrls->vflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
++	ctrls->hflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
+ 
+ 	sensor->sd.ctrl_handler = hdl;
+ 

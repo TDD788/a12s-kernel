@@ -1,0 +1,11 @@
+--- sound/usb/clock.c
++++ sound/usb/clock.c
+@@ -414,7 +456,7 @@ static int __uac3_clock_find_source(struct snd_usb_audio *chip, int entity_id,
+ 
+ 	selector = snd_usb_find_clock_selector_v3(chip->ctrl_intf, entity_id);
+ 	if (selector) {
+-		int ret, i, cur;
++		int ret, i, cur, err;
+ 
+ 		/* the entity ID we are looking for is a selector.
+ 		 * find out what it currently selects */

@@ -1,0 +1,68 @@
+--- drivers/infiniband/ulp/srpt/ib_srpt.c
++++ drivers/infiniband/ulp/srpt/ib_srpt.c
+@@ -2920,7 +2971,7 @@ static int srpt_release_sport(struct srpt_port *sport)
+ 	while (wait_event_timeout(sport->ch_releaseQ,
+ 				  srpt_ch_list_empty(sport), 5 * HZ) <= 0) {
+ 		pr_info("%s_%d: waiting for session unregistration ...\n",
+-			sport->sdev->device->name, sport->port);
++			dev_name(&sport->sdev->device->dev), sport->port);
+ 		rcu_read_lock();
+ 		list_for_each_entry(nexus, &sport->nexus_list, entry) {
+ 			list_for_each_entry(ch, &nexus->ch_list, list) {
+@@ -3010,7 +3061,7 @@ static int srpt_alloc_srq(struct srpt_device *sdev)
+ 	}
+ 
+ 	pr_debug("create SRQ #wr= %d max_allow=%d dev= %s\n", sdev->srq_size,
+-		 sdev->device->attrs.max_srq_wr, device->name);
++		 sdev->device->attrs.max_srq_wr, dev_name(&device->dev));
+ 
+ 	sdev->ioctx_ring = (struct srpt_recv_ioctx **)
+ 		srpt_alloc_ioctx_ring(sdev, sdev->srq_size,
+@@ -3043,8 +3094,8 @@ static int srpt_use_srq(struct srpt_device *sdev, bool use_srq)
+ 	} else if (use_srq && !sdev->srq) {
+ 		ret = srpt_alloc_srq(sdev);
+ 	}
+-	pr_debug("%s(%s): use_srq = %d; ret = %d\n", __func__, device->name,
+-		 sdev->use_srq, ret);
++	pr_debug("%s(%s): use_srq = %d; ret = %d\n", __func__,
++		 dev_name(&device->dev), sdev->use_srq, ret);
+ 	return ret;
+ }
+ 
+@@ -3130,7 +3181,7 @@ static void srpt_add_one(struct ib_device *device)
+ 
+ 		if (srpt_refresh_port(sport)) {
+ 			pr_err("MAD registration failed for %s-%d.\n",
+-			       sdev->device->name, i);
++			       dev_name(&sdev->device->dev), i);
+ 			goto err_event;
+ 		}
+ 	}
+@@ -3141,7 +3192,7 @@ static void srpt_add_one(struct ib_device *device)
+ 
+ out:
+ 	ib_set_client_data(device, &srpt_client, sdev);
+-	pr_debug("added %s.\n", device->name);
++	pr_debug("added %s.\n", dev_name(&device->dev));
+ 	return;
+ 
+ err_event:
+@@ -3156,7 +3207,7 @@ static void srpt_add_one(struct ib_device *device)
+ 	kfree(sdev);
+ err:
+ 	sdev = NULL;
+-	pr_info("%s(%s) failed.\n", __func__, device->name);
++	pr_info("%s(%s) failed.\n", __func__, dev_name(&device->dev));
+ 	goto out;
+ }
+ 
+@@ -3171,7 +3222,8 @@ static void srpt_remove_one(struct ib_device *device, void *client_data)
+ 	int i;
+ 
+ 	if (!sdev) {
+-		pr_info("%s(%s): nothing to do.\n", __func__, device->name);
++		pr_info("%s(%s): nothing to do.\n", __func__,
++			dev_name(&device->dev));
+ 		return;
+ 	}
+ 

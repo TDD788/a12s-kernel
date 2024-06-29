@@ -1,0 +1,11 @@
+--- fs/f2fs/data.c
++++ fs/f2fs/data.c
+@@ -551,7 +561,7 @@ void f2fs_submit_page_write(struct f2fs_io_info *fio)
+ 	}
+ 
+ 	if (fio->io_wbc)
+-		wbc_account_io(fio->io_wbc, bio_page, PAGE_SIZE);
++		wbc_account_io(fio->io_wbc, fio->page, PAGE_SIZE);
+ 
+ 	io->last_block_in_bio = fio->new_blkaddr;
+ 	f2fs_trace_ios(fio, 0);

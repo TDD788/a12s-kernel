@@ -1,0 +1,44 @@
+--- sound/pci/hda/patch_realtek.c
++++ sound/pci/hda/patch_realtek.c
+@@ -773,7 +842,7 @@ static int alc_subsystem_id(struct hda_codec *codec, const hda_nid_t *ports)
+ 			alc_setup_gpio(codec, 0x02);
+ 			break;
+ 		case 7:
+-			alc_setup_gpio(codec, 0x03);
++			alc_setup_gpio(codec, 0x04);
+ 			break;
+ 		case 5:
+ 		default:
+@@ -824,9 +891,11 @@ static void alc_ssid_check(struct hda_codec *codec, const hda_nid_t *ports)
+ {
+ 	if (!alc_subsystem_id(codec, ports)) {
+ 		struct alc_spec *spec = codec->spec;
+-		codec_dbg(codec,
+-			  "realtek: Enable default setup for auto mode as fallback\n");
+-		spec->init_amp = ALC_INIT_DEFAULT;
++		if (spec->init_amp == ALC_INIT_UNDEFINED) {
++			codec_dbg(codec,
++				  "realtek: Enable default setup for auto mode as fallback\n");
++			spec->init_amp = ALC_INIT_DEFAULT;
++		}
+ 	}
+ }
+ 
+@@ -1006,7 +1067,7 @@ struct alc_codec_rename_pci_table {
+ 	const char *name;
+ };
+ 
+-static struct alc_codec_rename_table rename_tbl[] = {
++static const struct alc_codec_rename_table rename_tbl[] = {
+ 	{ 0x10ec0221, 0xf00f, 0x1003, "ALC231" },
+ 	{ 0x10ec0269, 0xfff0, 0x3010, "ALC277" },
+ 	{ 0x10ec0269, 0xf0f0, 0x2010, "ALC259" },
+@@ -1027,7 +1088,7 @@ static struct alc_codec_rename_table rename_tbl[] = {
+ 	{ } /* terminator */
+ };
+ 
+-static struct alc_codec_rename_pci_table rename_pci_tbl[] = {
++static const struct alc_codec_rename_pci_table rename_pci_tbl[] = {
+ 	{ 0x10ec0280, 0x1028, 0, "ALC3220" },
+ 	{ 0x10ec0282, 0x1028, 0, "ALC3221" },
+ 	{ 0x10ec0283, 0x1028, 0, "ALC3223" },

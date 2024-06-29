@@ -1,0 +1,19 @@
+--- fs/ocfs2/move_extents.c
++++ fs/ocfs2/move_extents.c
+@@ -462,7 +473,7 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
+ 			bg = (struct ocfs2_group_desc *)gd_bh->b_data;
+ 
+ 			if (vict_blkno < (le64_to_cpu(bg->bg_blkno) +
+-						le16_to_cpu(bg->bg_bits))) {
++						(le16_to_cpu(bg->bg_bits) << bits_per_unit))) {
+ 
+ 				*ret_bh = gd_bh;
+ 				*vict_bit = (vict_blkno - blkno) >>
+@@ -577,6 +588,7 @@ static void ocfs2_probe_alloc_group(struct inode *inode, struct buffer_head *bh,
+ 			last_free_bits++;
+ 
+ 		if (last_free_bits == move_len) {
++			i -= move_len;
+ 			*goal_bit = i;
+ 			*phys_cpos = base_cpos + i;
+ 			break;

@@ -1,0 +1,110 @@
+--- drivers/crypto/talitos.c
++++ drivers/crypto/talitos.c
+@@ -1921,6 +1875,8 @@ static int common_nonsnoop(struct talitos_edesc *edesc,
+ 	bool sync_needed = false;
+ 	struct talitos_private *priv = dev_get_drvdata(dev);
+ 	bool is_sec1 = has_ftr_sec1(priv);
++	bool is_ctr = (desc->hdr & DESC_HDR_SEL0_MASK) == DESC_HDR_SEL0_AESU &&
++		      (desc->hdr & DESC_HDR_MODE0_AESU_MASK) == DESC_HDR_MODE0_AESU_CTR;
+ 
+ 	/* first DWORD empty */
+ 
+@@ -1941,8 +1897,8 @@ static int common_nonsnoop(struct talitos_edesc *edesc,
+ 	/*
+ 	 * cipher in
+ 	 */
+-	sg_count = talitos_sg_map(dev, areq->src, cryptlen, edesc,
+-				  &desc->ptr[3], sg_count, 0, 0);
++	sg_count = talitos_sg_map_ext(dev, areq->src, cryptlen, edesc, &desc->ptr[3],
++				      sg_count, 0, 0, 0, false, is_ctr ? 16 : 1);
+ 	if (sg_count > 1)
+ 		sync_needed = true;
+ 
+@@ -2734,7 +2707,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 			.base = {
+ 				.cra_name = "authenc(hmac(sha1),cbc(aes))",
+ 				.cra_driver_name = "authenc-hmac-sha1-"
+-						   "cbc-aes-talitos",
++						   "cbc-aes-talitos-hsna",
+ 				.cra_blocksize = AES_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -2778,7 +2751,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 				.cra_name = "authenc(hmac(sha1),"
+ 					    "cbc(des3_ede))",
+ 				.cra_driver_name = "authenc-hmac-sha1-"
+-						   "cbc-3des-talitos",
++						   "cbc-3des-talitos-hsna",
+ 				.cra_blocksize = DES3_EDE_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -2820,7 +2793,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 			.base = {
+ 				.cra_name = "authenc(hmac(sha224),cbc(aes))",
+ 				.cra_driver_name = "authenc-hmac-sha224-"
+-						   "cbc-aes-talitos",
++						   "cbc-aes-talitos-hsna",
+ 				.cra_blocksize = AES_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -2864,7 +2837,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 				.cra_name = "authenc(hmac(sha224),"
+ 					    "cbc(des3_ede))",
+ 				.cra_driver_name = "authenc-hmac-sha224-"
+-						   "cbc-3des-talitos",
++						   "cbc-3des-talitos-hsna",
+ 				.cra_blocksize = DES3_EDE_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -2906,7 +2879,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 			.base = {
+ 				.cra_name = "authenc(hmac(sha256),cbc(aes))",
+ 				.cra_driver_name = "authenc-hmac-sha256-"
+-						   "cbc-aes-talitos",
++						   "cbc-aes-talitos-hsna",
+ 				.cra_blocksize = AES_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -2950,7 +2923,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 				.cra_name = "authenc(hmac(sha256),"
+ 					    "cbc(des3_ede))",
+ 				.cra_driver_name = "authenc-hmac-sha256-"
+-						   "cbc-3des-talitos",
++						   "cbc-3des-talitos-hsna",
+ 				.cra_blocksize = DES3_EDE_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -3076,7 +3049,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 			.base = {
+ 				.cra_name = "authenc(hmac(md5),cbc(aes))",
+ 				.cra_driver_name = "authenc-hmac-md5-"
+-						   "cbc-aes-talitos",
++						   "cbc-aes-talitos-hsna",
+ 				.cra_blocksize = AES_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -3118,7 +3091,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 			.base = {
+ 				.cra_name = "authenc(hmac(md5),cbc(des3_ede))",
+ 				.cra_driver_name = "authenc-hmac-md5-"
+-						   "cbc-3des-talitos",
++						   "cbc-3des-talitos-hsna",
+ 				.cra_blocksize = DES3_EDE_BLOCK_SIZE,
+ 				.cra_flags = CRYPTO_ALG_ASYNC,
+ 			},
+@@ -3145,7 +3118,6 @@ static struct talitos_alg_template driver_algs[] = {
+ 			.cra_ablkcipher = {
+ 				.min_keysize = AES_MIN_KEY_SIZE,
+ 				.max_keysize = AES_MAX_KEY_SIZE,
+-				.ivsize = AES_BLOCK_SIZE,
+ 			}
+ 		},
+ 		.desc_hdr_template = DESC_HDR_TYPE_COMMON_NONSNOOP_NO_AFEU |
+@@ -3162,6 +3134,7 @@ static struct talitos_alg_template driver_algs[] = {
+ 				.min_keysize = AES_MIN_KEY_SIZE,
+ 				.max_keysize = AES_MAX_KEY_SIZE,
+ 				.ivsize = AES_BLOCK_SIZE,
++				.setkey = ablkcipher_aes_setkey,
+ 			}
+ 		},
+ 		.desc_hdr_template = DESC_HDR_TYPE_COMMON_NONSNOOP_NO_AFEU |

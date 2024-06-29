@@ -1,0 +1,13 @@
+--- drivers/usb/gadget/function/f_ncm.c
++++ drivers/usb/gadget/function/f_ncm.c
+@@ -1251,8 +1263,9 @@ static int ncm_unwrap_ntb(struct gether *port,
+ 	}
+ 	tmp++; /* skip wSequence */
+ 
++	block_len = get_ncm(&tmp, opts->block_length);
+ 	/* (d)wBlockLength */
+-	if (get_ncm(&tmp, opts->block_length) > max_size) {
++	if (block_len > ntb_max) {
+ 		INFO(port->func.config->cdev, "OUT size exceeded\n");
+ 		goto err;
+ 	}

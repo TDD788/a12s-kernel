@@ -1,0 +1,55 @@
+--- drivers/base/core.c
++++ drivers/base/core.c
+@@ -587,8 +713,16 @@ static void __device_link_del(struct kref *kref)
+ }
+ #endif /* !CONFIG_SRCU */
+ 
++static void device_link_put_kref(struct device_link *link)
++{
++	if (link->flags & DL_FLAG_STATELESS)
++		kref_put(&link->kref, __device_link_del);
++	else
++		WARN(1, "Unable to drop a managed device link reference\n");
++}
++
+ /**
+- * device_link_del - Delete a link between two devices.
++ * device_link_del - Delete a stateless link between two devices.
+  * @link: Device link to delete.
+  *
+  * The caller must ensure proper synchronization of this function with runtime
+@@ -600,14 +734,14 @@ void device_link_del(struct device_link *link)
+ {
+ 	device_links_write_lock();
+ 	device_pm_lock();
+-	kref_put(&link->kref, __device_link_del);
++	device_link_put_kref(link);
+ 	device_pm_unlock();
+ 	device_links_write_unlock();
+ }
+ EXPORT_SYMBOL_GPL(device_link_del);
+ 
+ /**
+- * device_link_remove - remove a link between two devices.
++ * device_link_remove - Delete a stateless link between two devices.
+  * @consumer: Consumer end of the link.
+  * @supplier: Supplier end of the link.
+  *
+@@ -626,7 +760,7 @@ void device_link_remove(void *consumer, struct device *supplier)
+ 
+ 	list_for_each_entry(link, &supplier->links.consumers, s_node) {
+ 		if (link->consumer == consumer) {
+-			kref_put(&link->kref, __device_link_del);
++			device_link_put_kref(link);
+ 			break;
+ 		}
+ 	}
+@@ -659,7 +793,7 @@ static void device_links_missing_supplier(struct device *dev)
+  * mark the link as "consumer probe in progress" to make the supplier removal
+  * wait for us to complete (or bad things may happen).
+  *
+- * Links with the DL_FLAG_STATELESS flag set are ignored.
++ * Links without the DL_FLAG_MANAGED flag set are ignored.
+  */
+ int device_links_check_suppliers(struct device *dev)
+ {
